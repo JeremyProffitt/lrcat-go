@@ -3,7 +3,7 @@ package lrcat
 // Schema contains the SQL statements for creating the Lightroom catalog database tables.
 // This schema is based on Adobe Lightroom Classic catalog format.
 
-const schemaVersion = "1901000"
+const schemaVersion = "1500000"
 
 var schemaSQL = []string{
 	// Core variables table
@@ -253,20 +253,18 @@ var schemaSQL = []string{
 		digest,
 		fileHeight,
 		fileWidth,
+		filterHeight,
+		filterWidth,
 		grayscale INTEGER,
-		hasAIMasks INTEGER NOT NULL DEFAULT 0,
 		hasBigData INTEGER NOT NULL DEFAULT 0,
 		hasDevelopAdjustments INTEGER,
 		hasDevelopAdjustmentsEx,
-		hasLensBlur INTEGER NOT NULL DEFAULT 0,
 		hasMasks INTEGER NOT NULL DEFAULT 0,
-		hasPointColor INTEGER NOT NULL DEFAULT 0,
 		hasRetouch,
 		hasSettings1,
 		hasSettings2,
 		historySettingsID,
 		image INTEGER,
-		isHdrEditMode INTEGER NOT NULL DEFAULT 0,
 		processVersion,
 		profileCorrections,
 		removeChromaticAberration,
@@ -301,6 +299,109 @@ var schemaSQL = []string{
 		trim_start NOT NULL DEFAULT '0000000000000000/0000000000000001'
 	)`,
 
+	// Image properties table
+	`CREATE TABLE Adobe_imageProperties (
+		id_local INTEGER PRIMARY KEY,
+		id_global UNIQUE NOT NULL,
+		image INTEGER,
+		propertiesString
+	)`,
+
+	// Additional variables table
+	`CREATE TABLE Adobe_variables (
+		id_local INTEGER PRIMARY KEY,
+		id_global UNIQUE NOT NULL,
+		name,
+		value
+	)`,
+
+	// Image change counter table
+	`CREATE TABLE AgLibraryImageChangeCounter (
+		image PRIMARY KEY,
+		changeCounter DEFAULT 0,
+		lastSyncedChangeCounter DEFAULT 0,
+		changedAtTime DEFAULT '',
+		localTimeOffsetSecs DEFAULT 0
+	)`,
+
+	// Folder stack tables
+	`CREATE TABLE AgLibraryFolderStack (
+		id_local INTEGER PRIMARY KEY,
+		id_global UNIQUE NOT NULL,
+		collapsed INTEGER NOT NULL DEFAULT 0,
+		text NOT NULL DEFAULT ''
+	)`,
+
+	`CREATE TABLE AgLibraryFolderStackData (
+		stack INTEGER,
+		stackCount INTEGER NOT NULL DEFAULT 0,
+		stackParent INTEGER
+	)`,
+
+	`CREATE TABLE AgLibraryFolderStackImage (
+		id_local INTEGER PRIMARY KEY,
+		collapsed INTEGER NOT NULL DEFAULT 0,
+		image INTEGER NOT NULL DEFAULT 0,
+		position NOT NULL DEFAULT '',
+		stack INTEGER NOT NULL DEFAULT 0
+	)`,
+
+	// Color profile constants
+	`CREATE TABLE AgSourceColorProfileConstants (
+		id_local INTEGER PRIMARY KEY,
+		image INTEGER NOT NULL DEFAULT 0,
+		profileName NOT NULL DEFAULT 'Untagged'
+	)`,
+
+	// Special source content
+	`CREATE TABLE AgSpecialSourceContent (
+		id_local INTEGER PRIMARY KEY,
+		content,
+		owningModule,
+		source NOT NULL DEFAULT ''
+	)`,
+
+	// Updated images tracking
+	`CREATE TABLE AgLibraryUpdatedImages (
+		image INTEGER PRIMARY KEY
+	)`,
+
+	// Develop history and snapshots
+	`CREATE TABLE Adobe_libraryImageDevelopHistoryStep (
+		id_local INTEGER PRIMARY KEY,
+		id_global UNIQUE NOT NULL,
+		dateCreated,
+		digest,
+		hasBigData INTEGER NOT NULL DEFAULT 0,
+		hasDevelopAdjustments,
+		image INTEGER,
+		name,
+		relValueString,
+		text,
+		valueString
+	)`,
+
+	`CREATE TABLE Adobe_libraryImageDevelopSnapshot (
+		id_local INTEGER PRIMARY KEY,
+		id_global UNIQUE NOT NULL,
+		digest,
+		hasBigData INTEGER NOT NULL DEFAULT 0,
+		hasDevelopAdjustments,
+		image INTEGER,
+		locked,
+		name,
+		snapshotID,
+		text
+	)`,
+
+	// Backup tracking
+	`CREATE TABLE AgLibraryBackups (
+		id_local INTEGER PRIMARY KEY,
+		backupPath UNIQUE,
+		backupSize,
+		backupCreationTime
+	)`,
+
 	// Indexes for performance
 	`CREATE INDEX idx_Adobe_images_rootFile ON Adobe_images (rootFile)`,
 	`CREATE INDEX idx_AgLibraryFile_folder ON AgLibraryFile (folder)`,
@@ -314,8 +415,6 @@ var schemaSQL = []string{
 }
 
 var requiredVariables = map[string]string{
-	"Adobe_DBVersion":              schemaVersion,
-	"AgLibraryKeyword_rootTagID":   "",
-	"Adobe_storeProviderData":      "",
-	"AgDeleteImages_trashedImages": "",
+	"Adobe_DBVersion":            schemaVersion,
+	"AgLibraryKeyword_rootTagID": "",
 }
